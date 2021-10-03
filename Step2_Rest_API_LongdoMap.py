@@ -1,0 +1,49 @@
+import requests
+import pandas as pd
+import time
+import random
+from API_KEY import API_Longdomap
+
+Tag_input = "KFC"
+#Longdo_map
+def rest_API (lat:str,long:str):
+    url = "https://api.longdo.com/POIService/json/search?"
+    API = "&key="+API_Longdomap() 
+    lon = "&lon="+str(long)
+    lat = "&lat="+str(lat)
+    tag = "&tag="+Tag_input
+    link = url+API+lon+lat+tag
+    response = requests.get(link)
+    json_data = response.json()
+    return json_data
+
+#A = rest_API('13.682302389202347','101.06601579039571')
+#ข้อมูล Tambon_Lat_Long
+df_tambon = pd.read_excel('tambon.xlsx',engine='openpyxl')
+
+##################################################################
+#Set Columns LongDoMAP
+Longdo_DF = pd.DataFrame(columns= ['id','name','lat','lon', 'tag','tag1','tag2','tag3','type','address','จังหวัด','อำเภอ','ตำบล'])
+count1 = 1
+
+for a in df_tambon.values :
+    print(count1,' ===> : Lat: ', a[10] ,'Long: ', a[11])
+    Longdo_API = rest_API(a[10],a[11])
+    print(count1,' ===> : จำนวนข้อมูลในรัศมี : ',len(Longdo_API['data']))
+    #Write ร้าน 7-11 ลง DataFrame
+    for i in Longdo_API['data']:
+        try:
+            newrow = {'id': i['id'], 'name': i['name'], 'lat': i['lat'], 'lon': i['lon']\
+                    ,'tag' :i['tag'][0], 'tag1' : i['tag'][1], 'tag2' : i['tag'][2], 'tag3': i['tag'][3]\
+                    , 'type' : i['type'], 'address' : i['address'], 'จังหวัด': a[8] ,'อำเภอ' : a[5], 'ตำบล' : a[2]  }
+            Longdo_DF = Longdo_DF.append(newrow , ignore_index=True)
+            print(Longdo_DF)
+        except:
+            ()
+    print(Longdo_DF)
+    if count1 % 5 == 0: #Save file ทุก 10 รอบ เพื่อป้องกันการทุก ดีด หรือ eror
+        Longdo_DF.to_excel("Longdo_DF.xlsx", index=False)
+    time.sleep(random.randint(5,10)) #ตั้งค่า Sleep เพื่อไม่ให้เกิดการ Rest API บ่อยเกินไปจนถูก Block
+    count1 += 1
+
+Longdo_DF.to_excel("Longdo_DF_final.xlsx")
